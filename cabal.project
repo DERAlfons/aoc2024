@@ -1,0 +1,6 @@
+packages: ./aoc2024.cabal
+
+source-repository-package
+  type: git
+  location: git@github.com:DERAlfons/my.git
+  tag: 3a396c129a6f03808bcfbd1b68f4fc3d6210e4d9
