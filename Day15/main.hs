@@ -12,28 +12,35 @@ d '>' = ( 0,  1)
 d '^' = (-1,  0)
 d 'v' = ( 1,  0)
 
-push :: Direction -> (Array Point Char, Point, Point, Char) -> Maybe (Array Point Char, Point, Point, Char)
-push (dx, dy) (grid, (rx, ry), (x, y), c) = case grid ! (x, y) of
-    '#' -> Nothing
-    '.' -> Just (grid // [((x, y), c)], rNew, (x, y), '.')
-    'O' -> push (dx, dy) (grid // [((x, y), c)], rNew, (x + dx, y + dy), 'O')
+push :: Direction -> (Array Point Char, Point) -> Maybe (Array Point Char, Point)
+push (dx, dy) (grid, (x, y)) = let
+    pNew = (x + dx, y + dy) in
+    flip (,) pNew <$> loop pNew '.' grid
     where
-    rNew = if c == '.' then (rx + dx, ry + dy) else (rx, ry)
+    loop (x, y) c grid = case grid ! (x, y) of
+        '#' -> Nothing
+        '.' -> Just $ grid // [((x, y), c)]
+        'O' -> loop (x + dx, y + dy) 'O' $ grid // [((x, y), c)]
 
 step :: (Array Point Char, Point) -> Char -> (Array Point Char, Point)
-step (grid, (x, y)) c = let
-    (dx, dy) = d c
-    (gridNew, r, _, _) = fromMaybe <*> push (d c) $ (grid, (x, y), (x + dx, y + dy), '.') in
-    (gridNew, r)
+step gridPos c = fromMaybe <*> push (d c) $ gridPos
+
+expand :: Char -> String
+expand '#' = "##"
+expand 'O' = "[]"
+expand '.' = ".."
+expand '@' = "@."
 
 main :: IO ()
 main = do
-    [gridS, moves] <- explode "" . lines <$> readFile "Day15/input.txt"
-    let n = length gridS
-        m = length $ gridS !! 0
-        gridArr = listArray ((0, 0), (n - 1, m - 1)) $ concat gridS
-        Just start = fst <$> find ((== '@') . snd) (assocs gridArr)
-        grid = gridArr // [(start, '.')]
-        (gridEnd, _) = foldl' step (grid, start) $ concat moves
-    print $ sum $ map (\ ((i, j), _) -> i * 100 + j) $ filter ((== 'O') . snd) (assocs gridEnd)
+    [gridT, moves] <- explode "" . lines <$> readFile "Day15/input.txt"
+    sequence $ do
+        gridS <- [gridT, map (expand =<<) gridT]
+        let n = length gridS
+            m = length $ gridS !! 0
+            gridArr = listArray ((0, 0), (n - 1, m - 1)) $ concat gridS
+            Just start = fst <$> find ((== '@') . snd) (assocs gridArr)
+            grid = gridArr // [(start, '.')]
+            (gridEnd, _) = foldl' step (grid, start) $ concat moves
+        return $ print $ sum $ map (\ (i, j) -> i * 100 + j) $ fst <$> filter ((== 'O') . snd) (assocs gridEnd)
     return ()
